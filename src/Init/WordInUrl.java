@@ -12,7 +12,7 @@ public class WordInUrl {
 
 	//词
 	public String word;
-	//属性(0表示普通词，1表示停用词，2表示未登录词（一般是字母等拉丁文字）
+	//属性(0表示普通词，1表示停用词，2表示未登录词（一般是字母等拉丁文字）)
 	public int flag;
 	//词频
 	public int num;

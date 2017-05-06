@@ -35,7 +35,32 @@ public class ZhengZe {
 	    }
 	    return l;
 	}
-	
+
+	//根据正则表达式语法匹配(仅仅输出匹配结果)--两者区别见主函数
+	public static ArrayList<String> getRealRe(String text,String patterString){
+		if(text.length()==0){
+			return null;
+		}
+		ArrayList<String> l=new ArrayList<String> ();
+		Pattern pattern = Pattern.compile(patterString);
+		Matcher m = pattern.matcher(text);
+		while (m.find()) {
+			//匹配到了第一个，然后从这个地方开始匹配下一个
+			//只要匹配到了就返回
+			String s=m.group();
+			l.add(s);
+			//System.out.println("开始匹配："+text.substring(text.indexOf(s)+1,text.length()));
+			ArrayList<String> buf=getRealRe(text.substring(text.indexOf(s)+1,text.length()),patterString);
+			if(buf!=null){
+				for(int i=0;i<buf.size();i++){
+					l.add(buf.get(i));
+				}
+			}
+			//System.out.println("返回的是："+l);
+			return l;
+		}
+		return null;
+	}
 	
 	public static void main(String[] args) {
 		// TODO 自动生成的方法存根

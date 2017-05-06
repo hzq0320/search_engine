@@ -292,7 +292,8 @@ public class Init {
 		//搜集所有插入词表的数据
 		bufsql="insert into "+Names.wordTable+"(word,flag,urls) values";
 		String wordstr="";
-		ArrayList<WordInUrl> words=TEXT.split(text,TEXT.words_maxlen,TEXT.nouse_maxlen);
+		//新的方法，需要先按照中文分割再分词
+		ArrayList<WordInUrl> words=TEXT.splitAndSplit(text,TEXT.words_maxlen,TEXT.nouse_maxlen);
 		if(words==null||words.size()==0){
 			u.words.clear();
 		}else{

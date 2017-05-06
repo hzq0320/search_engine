@@ -84,6 +84,17 @@ public class Time {
 		}
 	}
 	
+	//休眠（除去莫名其妙的Exception）
+	public static void sleep(int time){
+		for(int i=0;i<10;i++){
+			try{
+				Thread.sleep(time);
+			}catch(Exception e){
+				continue;
+			}
+		}
+	}
+
 	public static void main(String[] args) {
 		
 		long a=getTimeByStr10("1970-1-1");

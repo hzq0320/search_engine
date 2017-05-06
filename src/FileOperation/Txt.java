@@ -82,76 +82,112 @@ public class Txt {
 	
 	
 	//读取文件到链表(每一行是一个字符串--也可每读一行解析一次，存入特定类链表中)
-		public static void read(String path,List<String> l,String ma){
-			int flag=0;
-			//String s1="";
-			exist(path);
-			for(int i=0;i<10;i++){
-				try{
-					BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(path),ma));
-					//gbk避免乱码
-					for (String line = br.readLine(); line != null; line = br.readLine()) {
-			               // s1+=line+"\n";  
-			                l.add(line);
-			        }
-			        br.close();
-			        flag=1;
-				}
-				catch(Exception e){
-					continue;
-				}
-				if(flag==1){
-					break;
-				}
+	public static void read(String path,List<String> l,String ma){
+		int flag=0;
+		//String s1="";
+		exist(path);
+		for(int i=0;i<10;i++){
+			try{
+				BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(path),ma));
+				//gbk避免乱码
+				for (String line = br.readLine(); line != null; line = br.readLine()) {
+		               // s1+=line+"\n";  
+		                l.add(line);
+		        }
+		        br.close();
+		        flag=1;
 			}
-			if(flag==0){
-				System.out.println("读取文件"+path+"失败!");
+			catch(Exception e){
+				continue;
 			}
-			//return s1;
-			
-		}
-		
-		//读取文件到链表(每一行是一个字符串--也可每读一行解析一次，存入特定类链表中)
-		public static void read(String path,List<String> l){
-			read(path,l,"gbk");
-		}
-		
-		//将字符串写入到文件(注意用\r\n换行)，可设置编码
-		public static void write(String s,String path,String ma){
-			int flag=0;
-			//String s1="";
-			exist(path);
-			for(int i=0;i<10;i++){
-				try{
-					File f = new File(path);    
-					if (!f.exists()) 
-					{     
-						f.createNewFile();    
-					}    
-					OutputStreamWriter write = new OutputStreamWriter(new FileOutputStream(f),ma);    
-					//gbk避免乱码
-					BufferedWriter writer=new BufferedWriter(write);        
-					writer.write(s);  
-					writer.close();   
-			        flag=1;
-				}
-				catch(Exception e){
-					continue;
-				}
-				if(flag==1){
-					break;
-				}
-			}
-			if(flag==0){
-				System.out.println("写入文件"+path+"失败!");
+			if(flag==1){
+				break;
 			}
 		}
+		if(flag==0){
+			System.out.println("读取文件"+path+"失败!");
+		}
+		//return s1;
 		
+	}
 	
+	//读取文件到链表(每一行是一个字符串--也可每读一行解析一次，存入特定类链表中)
+	public static void read(String path,List<String> l){
+		read(path,l,"gbk");
+	}
+	
+	//将字符串写入到文件(注意用\r\n换行)，可设置编码
+	public static void write(String s,String path,String ma){
+		int flag=0;
+		//String s1="";
+		exist(path);
+		for(int i=0;i<10;i++){
+			try{
+				File f = new File(path);    
+				if (!f.exists()) 
+				{     
+					f.createNewFile();    
+				}    
+				OutputStreamWriter write = new OutputStreamWriter(new FileOutputStream(f),ma);    
+				//gbk避免乱码
+				BufferedWriter writer=new BufferedWriter(write);        
+				writer.write(s);  
+				writer.close();   
+		        flag=1;
+			}
+			catch(Exception e){
+				continue;
+			}
+			if(flag==1){
+				break;
+			}
+		}
+		if(flag==0){
+			System.out.println("写入文件"+path+"失败!");
+		}
+	}
+	
+	//将字符串写入到文件(注意用\r\n换行)，可设置编码（不追加
+	public static void writeNew(String s,String path,String ma){
+		int flag=0;
+		//String s1="";
+		exist(path);
+		for(int i=0;i<10;i++){
+			try{
+				File f = new File(path);    
+				if (!f.exists()) 
+				{     
+					f.createNewFile();    
+				}else{
+					f.delete();
+					f.createNewFile();
+				}
+				OutputStreamWriter write = new OutputStreamWriter(new FileOutputStream(f),ma);    
+				//gbk避免乱码
+				BufferedWriter writer=new BufferedWriter(write);        
+				writer.write(s);  
+				writer.close();   
+		        flag=1;
+			}
+			catch(Exception e){
+				continue;
+			}
+			if(flag==1){
+				break;
+			}
+		}
+		if(flag==0){
+			System.out.println("写入文件"+path+"失败!");
+		}
+	}
 	
 	//将字符串写入到文件(注意用\r\n换行)，默认为"gbk"编码
 	public static void write(String s,String path){
 		write(s,path,"gbk");
+	}
+	//将字符串写入到文件(注意用\r\n换行)，默认为"gbk"编码
+	public static void writeNew(String s,String path){
+		writeNew(s,path,"gbk");
 	}
 	
 	
@@ -191,9 +227,10 @@ public class Txt {
 		
 	}
 	//根据链表在文件末尾追加内容(默认编码为"gbk")
-		public static void write(List<String> l, String path) {
-			write(l,path,"gbk");
-		}
+	public static void write(List<String> l, String path) {
+		write(l,path,"gbk");
+	}
+	
 	
 	//根据链表在文件末尾追加内容(分隔）
 	public static void writeto(List<String> l, String path,String ma,String ge) {
