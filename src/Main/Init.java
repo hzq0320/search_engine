@@ -3,6 +3,8 @@ package Main;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Map.Entry;
@@ -16,6 +18,7 @@ import MySql.MySql;
 import Spider.jsoup;
 import Spider.judgeUrl;
 import Zhong.TEXT;
+import Zhong.Zh;
 
 
 /** 
@@ -97,7 +100,7 @@ public class Init {
 			}else{
 				//如果有网址，就把他们添加到urlset中
 				for(int i=0;i<urlstr.size();i++){
-					urlset.add(urlstr.get(i).replace("\t",""));
+					urlset.add(Zh.UrlEncodeUTF_8ToZh(urlstr.get(i).replace("\t","")));
 				}
 			}
 		}else{
@@ -107,12 +110,12 @@ public class Init {
 		
 		
 		//搜集待爬网址
-		sql="select url,flag,flagpa from "+Names.urlTable +" where flagpa=0 or text is null";
+		sql="select distinct url,flag,flagpa from "+Names.urlTable +" where flagpa=0 or text is null";
 		urlstr=MySql.select(con,sql);
 		if(urlstr!=null){
 			//如果没有没爬过的网址，就找最近一个月的网址
 			if(urlstr.size()==0){
-				sql="select url,flag,flagpa from "+Names.urlTable +" where time>"+(Time.Time.gettime10()-3600*24*30);
+				sql="select distinct url,flag,flagpa from "+Names.urlTable +" where time>"+(Time.Time.gettime10()-3600*24*30);
 				urlstr=MySql.select(con,sql);
 				if(urlstr==null||urlstr.size()==0){
 					//网址映射表为空，插入首页网址及其num为1
@@ -378,6 +381,7 @@ public class Init {
 		for(int i=0;i<chu.length;i++){
 			//当前未保存此链接，才保存一下
 			if(!urlset.contains(chu[i])){
+				//System.out.println("不包含："+chu[i]);
 				//System.out.println("不包含!");
 				Url bufu=new Url();
 				bufu.url=chu[i];
@@ -409,7 +413,6 @@ public class Init {
 						break;
 				}
 			}else{
-				
 				//包含那个网址，就把他的权重+1
 				bufsql="update "+Names.urlTable+" set weight=weight+1"+" where url='"+Zhong.Zh.ZhToUrlEncodeUTF_8(chu[i])+"'";
 				try {
@@ -427,7 +430,6 @@ public class Init {
 			try {
 				MySql.exec(con,allsql.substring(0,allsql.length()-1));
 			} catch (SQLException e) {
-				// TODO 自动生成的 catch 块
 				System.out.println("插入数据表失败!");
 				e.printStackTrace();
 			}
@@ -512,12 +514,23 @@ public class Init {
 		//判断网址类型初始化
 		judgeUrl.init();
 		//设置一波
-		judgeUrl.legalPats.add("http://computer.hdu.edu.cn/(.*?)");
+		judgeUrl.legalPats.add("http://([^/]*?)computer.hdu.edu.cn/(.*?)");
+		
+		System.out.println("数据库中已有网址数："+urlset.size());
+		System.out.println("待爬网址数:"+urldetail.size());
+		
+		/*查看一下数据库里有哪些网址
+		Iterator<String> iterator=urlset.iterator();
+		while(iterator.hasNext()){
+			System.out.println(iterator.next());
+		}*/
 		
 		
-		int maxthreadnum=50;
+		
+		//发现其实单线程速度更快，不会一直堵塞着
+		int maxthreadnum=4;
 		int sumlen=urldetail.size();
-		System.out.println("总线程数："+sumlen);
+		System.out.println("总网址数："+sumlen);
 		int flag=1;
 		if(sumlen>=maxthreadnum){
 			fixedThreadPool = Executors.newFixedThreadPool(maxthreadnum);
@@ -534,7 +547,7 @@ public class Init {
 		while(true){
 			
 			sumlen=bufurldetail.size();
-			System.out.println("总线程数："+sumlen);
+			System.out.println("总网址数："+sumlen);
 			ArrayList<Url> buf=(ArrayList<Url>) bufurldetail.clone();
 			bufurldetail.clear();
 			if(sumlen>=maxthreadnum){
@@ -551,7 +564,7 @@ public class Init {
 			/*for(int i=0;i<bufurldetaill.size();i++){
 				System.out.println(bufurldetaill.get(i));
 			}*/
-			if(bufurldetail.size()<50){
+			if(bufurldetail.size()<10){
 				ArrayList<Url> bufonemonth=getByOneMonth();
 				if(bufonemonth!=null&&bufonemonth.size()>0){
 					for(int i=0;i<bufonemonth.size();i++){
@@ -559,8 +572,6 @@ public class Init {
 					}
 				}
 			}
-			
-			
 			
 			/*//System.out.println(sumlen);
 			ArrayList<Url> bufonemonth=getByOneMonth();

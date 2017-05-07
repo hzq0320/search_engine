@@ -147,12 +147,14 @@ public class judgeUrl {
 		//判断网址类型初始化
 		judgeUrl.init();
 		//init();
-		judgeUrl.legalPats.add("http://computer.hdu.edu.cn/(.*?)");
+		//满足正确正则的也未必是合法网址，只有一个正确的正则都不匹配才返回-1
+		judgeUrl.legalPats.add("http://([^/]*?)hdu.edu.cn/(.*?)");
 		
 		//judgeUrl.legalPats.add("http://computer.hdu.edu.cn/(.*?)");
 		//初始化非法匹配模式
-		//illegalPats.add("http://foreign.hdu.edu.cn/");
-		String url="http://www.hdu.edu.cn";
+		//只要满足一个不正确正则就是非法网址
+		illegalPats.add("http://([^/]*?)acm.hdu.edu.cn/(.*?)");
+		String url="http://computer.hdu.edu.cn/index.php/article/1192";
 		System.out.println(judgeByUrlWithPat(url));
 		
 		
