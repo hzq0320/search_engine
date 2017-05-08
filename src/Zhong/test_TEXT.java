@@ -22,8 +22,7 @@ public class test_TEXT {
 		TEXT.init();
 		
 		String text=Txt.read(System.getProperty("user.dir")+"\\Split.txt","utf-8");
-		//System.out.println(text);
-		
+		text="杭州电子科技大学敖尔东敖川岚裘哲勇";
 		ArrayList<WordInUrl> re=new ArrayList<WordInUrl> ();
 		long start=Time.Time.gettime13();
 		

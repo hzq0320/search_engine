@@ -3,6 +3,7 @@ package MySql;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -65,6 +66,58 @@ public class MySql {
 	}
     
     
+	//查询表
+	//以链表形式返回，每行数据按照空格分开了
+	public static synchronized ArrayList<String> selectWithTitle(Connection con,String sql){
+		ArrayList<String> re=new ArrayList<String> ();
+		try{
+			Statement stmt = con.createStatement();
+			//查询
+			ResultSet rs = stmt.executeQuery(sql);
+			//大概是获取字段名
+			String title="";
+			ResultSetMetaData data = rs.getMetaData();
+			int count=data.getColumnCount();
+			for(int i=1;i<=count;i++){
+				title+=data.getColumnName(i)+"\t";
+				//System.out.println(data.getColumnName(i));
+			}
+			if(!title.equals("")){
+				title=title.substring(0,title.length()-1);
+			}
+			re.add(title);
+			rs = stmt.executeQuery(sql);
+            while (rs.next()){
+            	//实测就算不是String类型，也可以根据getString获得，问题就是不知道下标
+            	//一种方法是while（当抛出异常时即达到最大）
+            	int maxSize=1;
+            	String buf="";
+            	while(true){
+            		try{
+            			if(maxSize==1){
+            				buf+=rs.getString(maxSize);
+            				//re.add(rs.getString(maxSize));
+                			maxSize++;
+            			}else{
+            				buf+="\t"+rs.getString(maxSize);
+            				//re.add("\t"+rs.getString(maxSize));
+                			maxSize++;
+            			}
+            		}catch(Exception e){
+            			break;
+            		}
+            	}
+            	re.add(buf);
+            }
+            rs.close();
+            stmt.close();
+        }catch(Exception e)
+        {
+            //e.printStackTrace();
+        }
+		return re;
+	}
+	
 	//查询表
 	//以链表形式返回，每行数据按照空格分开了
 	public static synchronized ArrayList<String> select(Connection con,String sql){

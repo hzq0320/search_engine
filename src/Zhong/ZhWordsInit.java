@@ -40,15 +40,16 @@ public class ZhWordsInit {
 	private static ArrayList<String> nousel=new ArrayList<String> ();
 	
 	//用于自定义用户分词(用链表来存放分词表的路径，但是要求其中的词要以词+词频+词性构成)
-	private static ArrayList<String> allpaths=new ArrayList<String> ();
+	public static ArrayList<String> allpaths=new ArrayList<String> ();
 	
 	//用于自定义停用词表(用链表来存放停用词表的路径)
-	private static ArrayList<String> noUsePaths=new ArrayList<String> ();
+	public static ArrayList<String> noUsePaths=new ArrayList<String> ();
 	
 	
 	//初始化词典路径
 	public static void initPaths(){
 		allpaths.add(System.getProperty("user.dir")+"\\词表.txt");
+		allpaths.add(System.getProperty("user.dir")+"\\杭电词表.txt");
 	}
 	
 	//初始化停用词词典路径
@@ -118,6 +119,7 @@ public class ZhWordsInit {
 		for(int i=0;i<alll.size();i++){
 			String s[]=alll.get(i).split(" ");
 			if(s.length>=3){
+				//System.out.println(s[0].length()+":\t"+s[0]);
 				all.get(s[0].length()).put(s[0],Integer.parseInt(s[1]));
 			}
 		}
@@ -167,6 +169,11 @@ public class ZhWordsInit {
 		// TODO 自动生成的方法存根
 		//词典表全部初始化
 		initAll();
+		
+		//设置中文分词表（词表）
+		ZhWordsInit.allpaths.add("");
+		ZhWordsInit.noUsePaths.add("");
+		
 		System.out.println("一共有"+alll.size()+"个词");
 		int sum=0;
 		for(int i=0;i<all.size();i++){

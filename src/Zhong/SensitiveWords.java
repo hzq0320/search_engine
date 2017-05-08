@@ -146,9 +146,9 @@ public class SensitiveWords {
 		long start;
 		long end;
 		
-		int times=10000;
+		int times=100;
 		
-		String test="江泽民主席到杭州电子科技大学视察,发现杭州电子科技大学的学生十分勤奋!";
+		String test="江泽民主席和胡锦涛";
 		ArrayList<String> re=new ArrayList<String> ();
 		
 		

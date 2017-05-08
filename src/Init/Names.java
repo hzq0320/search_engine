@@ -1,4 +1,6 @@
 package Init;
+
+
 /** 
 * @author 作者 E-mail: zhiqianghu0320@gmail.com
 * @version 创建时间：2017年4月22日 下午1:40:59 
@@ -17,6 +19,5 @@ public class Names {
 
 	//word表
 	public static String wordTable="words"; 
-	
 	
 }

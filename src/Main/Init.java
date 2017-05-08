@@ -19,6 +19,7 @@ import Spider.jsoup;
 import Spider.judgeUrl;
 import Zhong.TEXT;
 import Zhong.Zh;
+import Zhong.ZhWordsInit;
 
 
 /** 
@@ -27,7 +28,7 @@ import Zhong.Zh;
 * 类说明 :数据库中url、chudu、rudu、title、text、words等全部用SplitZH.Zh.ZhToUrlEncodeUTF_8编码，转换出来需要解码
 网址表中flag=0表示正常网址，flag=1表示文件网址，flag=2表示html文件的网址
 flagpa=0表示没有被爬过，flagpa=1表示被爬过
-词表中
+05_08更新：还是要添加词的频率，因为频繁查找太慢了，部分频率高的需要保存到内存中
 */
 public class Init {
 
@@ -166,8 +167,8 @@ public class Init {
 		
 		//暂时还没有建立索引，没有用到词典表，先解决前面的错误再说(已经开始用了)
 		//然后是词典表
-		//分别表示词、词的类型、所有包含其的网址（url:词频	的形式，以,分割）--并不需要总的词频数吧
-		sql="create table if not exists "+Names.wordTable+"(word VARCHAR(768) not null,flag int not null,urls LONGTEXT,INDEX(word),INDEX(flag))";
+		//分别表示词、词的类型、所有包含其的网址（url:词频	的形式，以,分割）--并不需要总的词频数吧(需要!)
+		sql="create table if not exists "+Names.wordTable+"(word VARCHAR(768) not null,num int,flag int not null,urls LONGTEXT,INDEX(word),INDEX(flag),INDEX(num))";
 		try {
 			System.out.println(sql);
 			MySql.exec(con,sql);
@@ -293,7 +294,7 @@ public class Init {
 		}
 		
 		//搜集所有插入词表的数据
-		bufsql="insert into "+Names.wordTable+"(word,flag,urls) values";
+		bufsql="insert into "+Names.wordTable+"(word,num,flag,urls) values";
 		String wordstr="";
 		//新的方法，需要先按照中文分割再分词
 		ArrayList<WordInUrl> words=TEXT.splitAndSplit(text,TEXT.words_maxlen,TEXT.nouse_maxlen);
@@ -305,7 +306,7 @@ public class Init {
 				wordstr+=words.get(i).word+":"+words.get(i).num+",";
 				if(wordset.contains(words.get(i).word)){
 					//System.out.println(words.get(i).word+"正在更新词典数据表...");
-					String bufsql1="update "+Names.wordTable+" set "+"urls=(select concat(urls"+",'"+Zhong.Zh.ZhToUrlEncodeUTF_8(url+":"+words.get(i).num+",")+"')) where word='"+Zhong.Zh.ZhToUrlEncodeUTF_8(words.get(i).word)+"'";
+					String bufsql1="update "+Names.wordTable+" set "+"urls=(select concat(urls"+",'"+Zhong.Zh.ZhToUrlEncodeUTF_8(url+":"+words.get(i).num+",")+"')) and num=num+"+words.get(i).num+" where word='"+Zhong.Zh.ZhToUrlEncodeUTF_8(words.get(i).word)+"'";
 		        	try {
 						MySql.exec(con,bufsql1);
 						//System.out.println(words.get(i).word+"更新词典数据表成功!");
@@ -319,16 +320,16 @@ public class Init {
 					wordset.add(words.get(i).word);
 					if(words.get(i).word.length()==0){
 						//sql="insert into "+Names.wordTable+"(word,flag,urls) values('"+Zhong.Zh.ZhToUrlEncodeUTF_8(" ")+"',"+words.get(i).flag+",'"+Zhong.Zh.ZhToUrlEncodeUTF_8(url+":"+words.get(i).num+",")+"')";
-						bufsql+="('"+Zhong.Zh.ZhToUrlEncodeUTF_8(" ")+"',"+words.get(i).flag+",'"+Zhong.Zh.ZhToUrlEncodeUTF_8(url+":"+words.get(i).num+",")+"'),";
+						bufsql+="('"+Zhong.Zh.ZhToUrlEncodeUTF_8(" ")+"',"+words.get(i).num+","+words.get(i).flag+",'"+Zhong.Zh.ZhToUrlEncodeUTF_8(url+":"+words.get(i).num+",")+"'),";
 					}
 					else {
 						//sql="insert into "+Names.wordTable+"(word,flag,urls) values('"+Zhong.Zh.ZhToUrlEncodeUTF_8(words.get(i).word)+"',"+words.get(i).flag+",'"+Zhong.Zh.ZhToUrlEncodeUTF_8(url+":"+words.get(i).num+",")+"')";
-						bufsql+="('"+Zhong.Zh.ZhToUrlEncodeUTF_8(words.get(i).word)+"',"+words.get(i).flag+",'"+Zhong.Zh.ZhToUrlEncodeUTF_8(url+":"+words.get(i).num+",")+"'),";
+						bufsql+="('"+Zhong.Zh.ZhToUrlEncodeUTF_8(words.get(i).word)+"',"+words.get(i).num+","+words.get(i).flag+",'"+Zhong.Zh.ZhToUrlEncodeUTF_8(url+":"+words.get(i).num+",")+"'),";
 					}
 				}
 			}
 		}
-		if(!bufsql.equals("insert into "+Names.wordTable+"(word,flag,urls) values")){
+		if(!bufsql.equals("insert into "+Names.wordTable+"(word,num,flag,urls) values")){
 			try {
 				MySql.exec(con,bufsql.substring(0,bufsql.length()-1));
 				//System.out.println(words.get(i).word+"插入词典数据表成功!");
@@ -513,18 +514,19 @@ public class Init {
 		TEXT.init();
 		//判断网址类型初始化
 		judgeUrl.init();
-		//设置一波
+		//设置
 		judgeUrl.legalPats.add("http://([^/]*?)computer.hdu.edu.cn/(.*?)");
+		
+		//设置中文分词表（词表）
+		ZhWordsInit.allpaths.add("");
+		//设置中文分词表（停用词表）
+		ZhWordsInit.noUsePaths.add("");
+		
+		//当新网址数量小于一定值时搜索一月内网址
+		int lessthannum=10;
 		
 		System.out.println("数据库中已有网址数："+urlset.size());
 		System.out.println("待爬网址数:"+urldetail.size());
-		
-		/*查看一下数据库里有哪些网址
-		Iterator<String> iterator=urlset.iterator();
-		while(iterator.hasNext()){
-			System.out.println(iterator.next());
-		}*/
-		
 		
 		
 		//发现其实单线程速度更快，不会一直堵塞着
@@ -564,7 +566,7 @@ public class Init {
 			/*for(int i=0;i<bufurldetaill.size();i++){
 				System.out.println(bufurldetaill.get(i));
 			}*/
-			if(bufurldetail.size()<10){
+			if(bufurldetail.size()<lessthannum){
 				ArrayList<Url> bufonemonth=getByOneMonth();
 				if(bufonemonth!=null&&bufonemonth.size()>0){
 					for(int i=0;i<bufonemonth.size();i++){

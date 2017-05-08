@@ -1,3 +1,5 @@
+主要技术：爬虫、线程池管理、中文分词、数据库、索引、代理服务器
+
 # search_engine
 
 A small universal search engine
