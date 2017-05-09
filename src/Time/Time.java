@@ -97,9 +97,20 @@ public class Time {
 
 	public static void main(String[] args) {
 		
-		/*long a=getTimeByStr10("1970-1-1");
+		/*long a=getTimeByStr10("1970-1-2");
 		System.out.println(a);*/
-		long start;
+		for(int i=0;i<10;i++){
+			System.out.println(Time.gettime10());
+			System.out.println(Time.gettime13());
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		
+		/*long start;
 		long end;
 		for(int i=0;i<10;i++){
 			start=Time.gettime13();
@@ -110,7 +121,7 @@ public class Time {
 			}
 			end=Time.gettime13();
 			System.out.println(end-start);
-		}
+		}*/
 	}
 
 }

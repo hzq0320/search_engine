@@ -306,7 +306,7 @@ public class Init {
 				wordstr+=words.get(i).word+":"+words.get(i).num+",";
 				if(wordset.contains(words.get(i).word)){
 					//System.out.println(words.get(i).word+"正在更新词典数据表...");
-					String bufsql1="update "+Names.wordTable+" set "+"urls=(select concat(urls"+",'"+Zhong.Zh.ZhToUrlEncodeUTF_8(url+":"+words.get(i).num+",")+"')) and num=num+"+words.get(i).num+" where word='"+Zhong.Zh.ZhToUrlEncodeUTF_8(words.get(i).word)+"'";
+					String bufsql1="update "+Names.wordTable+" set "+"urls=(select concat(urls"+",'"+Zhong.Zh.ZhToUrlEncodeUTF_8(url+":"+words.get(i).num+",")+"')),num=num+"+words.get(i).num+" where word='"+Zhong.Zh.ZhToUrlEncodeUTF_8(words.get(i).word)+"'";
 		        	try {
 						MySql.exec(con,bufsql1);
 						//System.out.println(words.get(i).word+"更新词典数据表成功!");
