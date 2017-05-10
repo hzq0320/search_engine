@@ -4,6 +4,8 @@ import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -42,10 +44,16 @@ public class shortMovie {
 	//代理服务器
 	public static class_proxy cp;
 	
+	//标记爬虫是否被屏蔽
+	public static int threadFlag;
+	
+	//搜集sql
+	public static ArrayList<String> sqls;
+	
 	//根据首页获取年份列表
 	public static ArrayList<String> getYearsByRoot(){
 		ArrayList<String> re=new ArrayList<String> ();
-		String source=jsoup.getSource(root_url);
+		String source=jsoup.getSource(root_url,10000,cp.ip,cp.port);
 		if(source!=null&&source.length()>0){
 			Document doc=Jsoup.parse(source);
 			Elements tags=doc.select("[class=tagCol]");
@@ -91,10 +99,21 @@ public class shortMovie {
 		proxyNum++;
 	}
 	
+	//加锁修改flag
+	public synchronized static void setflag(int i){
+		threadFlag=i;
+	}
+	
+	//加锁关闭线程池
+	public synchronized static void articlePage_shutdown(){
+		articlePage_fixedThreadPool.shutdownNow();
+	}
+	
+	
 	//根据年份获取按照日期排序的页数
 	public static int getPageNumByYear(String year){
 		String url=url_head+year+url_end;
-		String source=jsoup.getSource(url);
+		String source=jsoup.getSource(url,10000,cp.ip,cp.port);
 		if(source!=null&&source.length()>0){
 			String pat="data-total-page=\"(\\d+?)\"";
 			ArrayList<String> re=ZhengZe.ZhengZe.getRe(source,pat);
@@ -113,7 +132,7 @@ public class shortMovie {
 	public static ArrayList<class_shortmovieinfo> getMoviesByPageNum(String year,int pagenum){
 		String url=url_head+year+"?start="+(pagenum-1)*20+url_end;
 		ArrayList<class_shortmovieinfo> l=new ArrayList<class_shortmovieinfo> ();
-		String source=jsoup.getSource(url);
+		String source=jsoup.getSource(url,10000,cp.ip,cp.port);
 		if(source!=null&&source.length()>0){
 			//先找到所有电影的位置
 			Document doc=Jsoup.parse(source);
@@ -172,7 +191,7 @@ public class shortMovie {
 		int pagenum=1;
 		while(true){
 			String url=url_head+year+"?start="+(pagenum-1)*20+url_end;
-			String source=jsoup.getSource(url);
+			String source=jsoup.getSource(url,10000,cp.ip,cp.port);
 			if(source!=null&&source.length()>0){
 				//如果非法的页面就退出了
 				if(source.contains("没有找到符合条件的电影")){
@@ -329,22 +348,7 @@ public class shortMovie {
 				}	
 			}else{
 				System.out.println("可能ip被屏蔽了，重新连接...");
-				//取得可用代理服务器就行
-				while(true){
-					if(douban_up.usefulProxy.size()>proxyNum){
-						cp=douban_up.usefulProxy.get(proxyNum);
-						System.out.println("取得第"+(proxyNum+1)+"个可用代理服务器:"+cp);
-						addNum();
-						break;
-					}else{
-						//休眠，避免一直循环浪费资源
-						try {
-							Thread.sleep(1000);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-					}
-				}
+				getValiable(douban_up);
 			//	System.out.println("继续...");
 				continue;
 			}
@@ -366,9 +370,19 @@ public class shortMovie {
 			e.printStackTrace();
 			return false;
 		}
-		return true;
+		
+		sql="create table if not exists "+ DoubanNames.shortArticleTableName+"(movienum int,articlenum int,flag int,INDEX(movienum),INDEX(articlenum),INDEX(flag))";
+		try{
+			MySql.MySql.exec(DoubanNames.con,sql);
+		}catch(Exception e){
+			System.out.println(sql);
+			System.out.println("初始化影评表失败!!");
+			e.printStackTrace();
+			return false;
+		}
+		
+		return true ;
 	}
-	
 	
 	//从shortmovie获取num
 	public static boolean getNumsFromSql(){
@@ -388,65 +402,130 @@ public class shortMovie {
 		return true;
 	}
 	
+	//根据movie的num获取影评页数
+	public static int getPageNumByMovieNumProxy(useful_proxy douban_up,int num){
+		String url="https://movie.douban.com/subject/"+num+"/reviews";
+		int flag=0;
+		while(flag<3){
+			String source=jsoup.getSource(url,10000,cp.ip,cp.port);
+			if(source!=null&&source.length()>0){
+				String pat="data-total-page=\"(\\d+?)\"";
+				ArrayList<String> l=ZhengZe.ZhengZe.getRe(source,pat);
+				if(l!=null&&l.size()==1){
+					return Integer.parseInt(l.get(0));
+				}else{
+					//没有总页数，说明可能只有一页
+					return 1;
+				}
+			}else{
+				getValiable(douban_up);
+				flag++;
+			}
+		}
+		return -1;
+	}
 	
-	public static void main(String[] args) {
-		// TODO 自动生成的方法存根
-
-		
-		//初始化表
-		if(!init()){
-			System.out.println("初始化失败!");
-			return ;
-		}
-		System.out.println("初始化成功!");
-		
-		//从数据表中获取电影num数据
-		if(!getNumsFromSql()){
-			System.out.println("从数据表中获取num失败!");
-		}else{
-			/*Iterator it =nums.iterator();
-			while(it.hasNext()){
-				System.out.println(it.next());
-			}*/
-			System.out.println("从数据表中获取num成功!");
-		}
-		
-		
-		
-		
-		
-		
-		try {
-			Thread.sleep(3600*1000);
-		} catch (InterruptedException e1) {
-			e1.printStackTrace();
-		}
-		
-		
-		
+	//根据电影年份和排序方式获取电影num等(year不仅仅是年份，还可以是其他（比如香港电影等）
+	public static void getByYearAndSort(useful_proxy douban_up,String year,int sort){
 		//初始化年份列表
 		//ArrayList<String> years=getYearsByRoot();
 		ArrayList<String> years=new ArrayList<String> ();
 		//添加年份
-		years.add("2016");
+		years.add(year);
 		//综合排序
-		changeEnd(4);
+		changeEnd(sort);
 		
+		//把某个年份的电影数据爬完
+		if(years!=null&&years.size()>0){
+			for(int i=0;i<years.size();i++){
+				//需要传递对象（因为里面有可用代理服务器列表）
+				getMoviesByYearProxy(douban_up,i+1,years.size(),years.get(i));
+			}
+		}	
 		
-		//代理服务器开始获取
-		//初始取第0个标志位
-		proxyNum=0;
-		//可用代理服务器
-		cp=new class_proxy();
-		//测试网址
-		String douban_url="https://movie.douban.com";
-		//后台线程数
-		int doubanproxy_threadnum=1000;
-		//后台获取可用代理服务器
-		useful_proxy douban_up=new useful_proxy(douban_url,doubanproxy_threadnum);
-		douban_up.start();
+	}
+	
+	//根据电影num和页数以及代理服务器获取影评网址
+	//分别表示电影页数url、电影位置、电影的num、电影页数、电影总页数
+	public static int getUrlByMovieNumAndPageNumProxy(String url,int index,int movienum,int i,int pagenum){
+		String source=jsoup.getSource(url,10000,cp.ip,cp.port);
+		int sum=0;
+		//System.out.println("正在获取:"+url);
+		System.out.println("正在获取数据--第"+index+"/"+nums.size()+"个电影："+movienum+"\t第"+i+"/"+pagenum+"页");
+		//System.out.println("source="+source);
+		if(source!=null&&source.length()>0){
+			String pat="https://movie.douban.com/review/(\\d+?)/\"";
+			ArrayList<String> l=ZhengZe.ZhengZe.getRe(source,pat);
+			//System.out.println("url="+url+"l.size="+l.size());
+			if(l!=null&&l.size()<21){
+				String bufsql="insert into "+DoubanNames.shortArticleTableName+"(movienum,articlenum,flag) values";
+				for(int j=0;j<l.size();j++){
+					try{
+						//System.out.println("nowind="+ind);
+						bufsql+="("+movienum+","+Integer.parseInt(l.get(j))+",0),";
+					//	System.out.println("bufsql="+bufsql);
+					}catch(Exception e){
+						System.out.println(l.get(j));
+						e.printStackTrace();
+					}
+				}
+				if(bufsql.equals("insert into "+DoubanNames.shortArticleTableName+"(movienum,articlenum,flag) values")){
+					return 1;
+				}
+				bufsql=bufsql.substring(0,bufsql.length()-1);
+				//System.out.println(bufsql);
+				sqls.add(bufsql);
+			}
+			return 1;
+		}else{
+			return -1;
+		}
+	}
+	
+	//影评页线程池
+	private static ExecutorService articlePage_fixedThreadPool;
+		
+	//传的参数分别是：链表,线程数
+	public static void start(ArrayList<String> l,int index1,int movienum,int pageNum,int n,int one1,int now){
+		articlePage_fixedThreadPool = Executors.newFixedThreadPool(n);
+		int one=l.size()/n+1;
+		for (int i = 0; i < n; i++) {  
+			final int index = i;  
+			articlePage_fixedThreadPool.execute(new Runnable() {  
+				public void run() {  
+					try {  
+						for(int i=(index*one);i<(index+1)*one;i++){
+							if(threadFlag==1){
+								return;
+							}
+							if(i<l.size()){
+								System.out.println("线程池的第"+index+"个线程:"+l.get(i));
+								int re=getUrlByMovieNumAndPageNumProxy(l.get(i),index1,movienum,one1*now+i+1,pageNum);
+								if(re==-1){
+									System.out.println("ip被屏蔽，换下一个");
+									setflag(1);
+									articlePage_shutdown();
+								}
+							}
+						} 
+					} catch (Exception e) {  
+						 e.printStackTrace();
+					}  
+				}  
+			});  
+		}  
+		articlePage_shutdown();
+	}
+	
+	//得到可用代理服务器
+	public static void getValiable(useful_proxy douban_up){
 		//取得第一个可用代理服务器就行
 		while(true){
+			//判断有没有爬完一遍可用代理服务器
+			if(douban_up.fixedThreadPool.isTerminated()){
+				douban_up.stop();
+				douban_up.start();
+			}
 			if(douban_up.usefulProxy.size()>proxyNum){
 				cp=douban_up.usefulProxy.get(proxyNum);
 				System.out.println("取得第"+(proxyNum+1)+"个可用代理服务器:"+cp);
@@ -461,23 +540,211 @@ public class shortMovie {
 				}
 			}
 		}
+	}
+	
+	
+	//根据电影的num集合来获取电影及其对应的影评编号
+	//传的参数分别是useful_proxy对象和线程数量
+	@SuppressWarnings("deprecation")
+	public static void getArticleNumByMovieNumProxy(useful_proxy douban_up,int getThreadNum){
+		sqls=new ArrayList<String> ();
 		
-
-		//把某个年份的电影数据爬完
-		if(years!=null&&years.size()>0){
-			for(int i=0;i<years.size();i++){
-				//需要传递对象（因为里面有可用代理服务器列表）
-				getMoviesByYearProxy(douban_up,i+1,years.size(),years.get(i));
+		//nums的HashSet转数组
+		Integer [] nums_sz=new Integer[nums.size()];
+		nums.toArray(nums_sz);
+		
+		//遍历所有已有的nums
+		for(int index=0;index<nums_sz.length;){
+			setflag(0);
+			sqls.clear();
+			
+			int num=nums_sz[index];
+			int pagenum=getPageNumByMovieNumProxy(douban_up,num);
+			if(pagenum==-1){
+				System.out.println("获取电影影评页数失败!");
+				continue;
+			}else{
+				System.out.println("获取电影影评页数成功!共"+pagenum+"页");
+				//分批爬虫
+				int one=getThreadNum;
+				int len=pagenum/one+2;
+				ArrayList<String> pageUrls=new ArrayList<String> ();
+				for(int i=0;i<len;){
+					pageUrls.clear();
+					sqls.clear();
+					//把电影影评网址加入到链表
+					for(int j=i*one+1;j<=(i+1)*one;j++){
+						if(j<=pagenum){
+							pageUrls.add("https://movie.douban.com/subject/"+num+"/reviews?start="+(j-1)*20);
+						}
+					}
+					
+					System.out.println("第"+index+"部电影:"+num+":开启多线程");
+					
+					//分别表示电影页数网址集合、电影的位置、电影的num、电影总页数、线程数、用来判断当前是多少页
+					start(pageUrls,index,num,pagenum,getThreadNum,i,one);
+					
+					while(!articlePage_fixedThreadPool.isTerminated()){
+					}
+					if(threadFlag==1){
+						System.out.println("ip被屏蔽，重新获取");
+						getValiable(douban_up);
+					}else{
+						System.out.println("批量插入表格..."+sqls.size());
+						for(int mk=0;mk<sqls.size();mk++){
+							try{
+								MySql.MySql.execInsert(DoubanNames.con,sqls.get(mk));
+							}catch(Exception e){
+								System.out.println(sqls.get(mk));
+								System.out.println("插入到表失败!");
+								e.printStackTrace();
+							}
+						}
+						System.out.println("修改flag...");
+						sql="update "+DoubanNames.shortMovieTableName+" set flag=1 where num="+nums_sz[index];
+						try{
+							MySql.MySql.execInsert(DoubanNames.con,sql);
+							i++;
+						}catch(Exception e){
+							System.out.println(sql);
+							System.out.println("修改flag失败!");
+							e.printStackTrace();
+						}
+					}
+				}
 			}
 		}
+	}
+	
+	
+	public static void main(String[] args) {
+		// TODO 自动生成的方法存根
+
+		//初始化表
+		if(!init()){
+			System.out.println("初始化失败!");
+			return ;
+		}
+		System.out.println("初始化成功!");
+		
+		//代理服务器开始获取
+		//初始取第0个标志位
+		proxyNum=0;
+		//可用代理服务器
+		cp=new class_proxy();
+		//测试网址
+		String douban_url="https://movie.douban.com";
+		//后台线程数
+		int doubanproxy_threadnum=2000;
+		//后台获取可用代理服务器
+		useful_proxy douban_up=new useful_proxy(douban_url,doubanproxy_threadnum);
+		douban_up.start();
+		while(douban_up.fixedThreadPool==null){
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		getValiable(douban_up);
+		
+		//开始爬电影数据
+		//getByYearAndSort(douban_up,"2016",4);
+		
+		//从数据表中获取电影num数据（爬完电影数据后爬影评num）
+		if(!getNumsFromSql()){
+			System.out.println("从数据表中获取num失败!");
+		}else{
+			System.out.println("从数据表中获取num成功!");
+		}
+		
+		//表示影评爬虫线程数
+		int getThreadNum=5;
+		
+		getArticleNumByMovieNumProxy(douban_up,getThreadNum);
 		
 		
 		
+		/*sqls=new ArrayList<String> ();
 		
+		//nums的HashSet转数组
+		Integer [] nums_sz=new Integer[nums.size()];
+		nums.toArray(nums_sz);
+		
+		//遍历所有已有的nums
+		for(int index=0;index<nums_sz.length;index++){
+			int num=nums_sz[index];
+			int pagenum=getPageNumByMovieNumProxy(douban_up,num);
+			if(pagenum==-1){
+				System.out.println("获取电影影评页数失败!");
+				continue;
+			}else{
+				ArrayList<String> pageUrls=new ArrayList<String> ();
+				//把电影影评网址加入到链表
+				for(int i=1;i<=pagenum;i++){
+					pageUrls.add("https://movie.douban.com/subject/"+num+"/reviews?start="+(i-1)*20);
+				}
+				System.out.println("第"+index+"部电影:"+num+":开启多线程");
+				
+				//分别表示电影页数网址集合、电影的位置、电影的num、电影总页数、线程数
+				start(pageUrls,index,num,pagenum,getThreadNum);
+				
+				while(!articlePage_fixedThreadPool.isTerminated()){
+				}
+				if(threadFlag==1){
+					System.out.println("ip被屏蔽，重新获取");
+					//取得第一个可用代理服务器就行
+					while(true){
+						if(douban_up.usefulProxy.size()>proxyNum){
+							cp=douban_up.usefulProxy.get(proxyNum);
+							System.out.println("取得第"+(proxyNum+1)+"个可用代理服务器:"+cp);
+							addNum();
+							break;
+						}else{
+							//休眠，避免一直循环浪费资源
+							try {
+								Thread.sleep(1000);
+							} catch (InterruptedException e) {
+								e.printStackTrace();
+							}
+						}
+					}
+				}else{
+					System.out.println("批量插入表格..."+sqls.size());
+					for(int mk=0;mk<sqls.size();mk++){
+						try{
+							MySql.MySql.execInsert(DoubanNames.con,sqls.get(mk));
+						}catch(Exception e){
+							System.out.println(sqls.get(mk));
+							System.out.println("插入到表失败!");
+							e.printStackTrace();
+						}
+					}
+					System.out.println("修改flag...");
+					sql="update "+DoubanNames.shortMovieTableName+" set flag=1 where num="+nums_sz[index];
+					try{
+						MySql.MySql.execInsert(DoubanNames.con,sql);
+						index++;
+					}catch(Exception e){
+						System.out.println(sql);
+						System.out.println("修改flag失败!");
+						e.printStackTrace();
+					}
+				}
+				setflag(0);
+				sqls.clear();
+			}
+		}
+		*/
+		
+		/*try {
+			Thread.sleep(3600*1000);
+		} catch (InterruptedException e1) {
+			e1.printStackTrace();
+		}*/
 		
 		//运行完之后还需要关闭运行的多线程
 		douban_up.stop();
-		
 	}
 
 }
