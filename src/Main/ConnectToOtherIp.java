@@ -2,6 +2,7 @@ package Main;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -78,6 +79,27 @@ public class ConnectToOtherIp {
 		return re;
 	}
 	
+	
+	//查询
+	public static void se(){
+		sql="SELECT count(url) FROM search.urls;";
+		ArrayList<String> re=MySql.MySql.select(con,sql);
+		System.out.println("共有网址数："+re);
+		
+		sql="SELECT count(url) FROM search.urls where text is not null;";
+		re=MySql.MySql.select(con,sql);
+		System.out.println("有效网址数："+re);
+		
+		sql="select count(distinct url) from urls";
+		re=MySql.MySql.select(con,sql);
+		System.out.println("不重复网址数："+re);
+		
+		sql="SELECT count(word) FROM search.words;";
+		re=MySql.MySql.select(con,sql);
+		System.out.println("共有词数："+re);
+		
+	}
+	
 	public static void main(String[] args) {
 		// TODO 自动生成的方法存根
 
@@ -86,9 +108,39 @@ public class ConnectToOtherIp {
 			System.out.println("初始化失败!");
 			return ;
 		}
+		
+		se();
+		
+		
 		Scanner in=new Scanner(System.in);
+		
 		while(true){
+			System.out.println(Time.getDetailTime());
+			se();
+			try {
+				Thread.sleep(10*1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		
+		/*while(true){
 			String s=in.next();
+			//根据命令查询
+			if(s.equals("1")){
+				//判断服务器是否被关闭
+				try {
+					if(con.isClosed()){
+						System.out.println("关闭了");
+						break;
+					}
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+				se();
+				continue;
+			}
 			long start=Time.gettime13();
 			ArrayList<String> re=selectUrlFromWord(s);
 			System.out.println(re.size());
@@ -101,7 +153,7 @@ public class ConnectToOtherIp {
 			}
 			long end=Time.gettime13();
 			System.out.println("用时:"+(end-start)+"秒");
-		}
+		}*/
 		
 	}
 

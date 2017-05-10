@@ -132,7 +132,7 @@ public class useful_proxy extends Thread{
 
 		useful_proxy up=new useful_proxy("https://movie.douban.com",1000);
 		up.start();
-		
+
 	}
 
 }
