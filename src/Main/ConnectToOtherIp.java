@@ -79,7 +79,6 @@ public class ConnectToOtherIp {
 		return re;
 	}
 	
-	
 	//查询
 	public static void se(){
 		sql="SELECT count(url) FROM search.urls;";
