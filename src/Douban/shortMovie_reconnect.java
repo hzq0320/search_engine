@@ -29,7 +29,7 @@ import Spider.jsoup;
 * 
 * 05_09:发现排序方式是标注次数的时候无法获取页数（获取的是噪音），只能一页一页获取
 */
-public class shortMovie {
+public class shortMovie_reconnect {
 
 	//首页
 	public static final String root_url="https://movie.douban.com";
@@ -51,9 +51,9 @@ public class shortMovie {
 	//sql
 	public static String sql;
 	//标记当前使用第几个代理服务器
-	public static int proxyNum;
+	//public static int proxyNum;
 	//代理服务器
-	public static class_proxy cp;
+	//public static class_proxy cp;
 	
 	//标记爬虫是否被屏蔽
 	public static int threadFlag;
@@ -64,7 +64,7 @@ public class shortMovie {
 	//根据首页获取年份列表
 	public static ArrayList<String> getYearsByRoot(){
 		ArrayList<String> re=new ArrayList<String> ();
-		String source=jsoup.getSource(root_url,10000,cp.ip,cp.port);
+		String source=jsoup.getSource(root_url);
 		if(source!=null&&source.length()>0){
 			Document doc=Jsoup.parse(source);
 			Elements tags=doc.select("[class=tagCol]");
@@ -100,7 +100,7 @@ public class shortMovie {
 		}
 	}
 	
-	//加锁修改flag
+	/*//加锁修改flag
 	public synchronized static void setNum(int i){
 		proxyNum=i;
 	}
@@ -108,7 +108,7 @@ public class shortMovie {
 	//加锁修改flag
 	public synchronized static void addNum(){
 		proxyNum++;
-	}
+	}*/
 	
 	//加锁修改flag
 	public synchronized static void setflag(int i){
@@ -124,7 +124,7 @@ public class shortMovie {
 	//根据年份获取按照日期排序的页数
 	public static int getPageNumByYear(String year){
 		String url=url_head+year+url_end;
-		String source=jsoup.getSource(url,10000,cp.ip,cp.port);
+		String source=jsoup.getSource(url);
 		if(source!=null&&source.length()>0){
 			String pat="data-total-page=\"(\\d+?)\"";
 			ArrayList<String> re=ZhengZe.ZhengZe.getRe(source,pat);
@@ -143,7 +143,7 @@ public class shortMovie {
 	public static ArrayList<class_shortmovieinfo> getMoviesByPageNum(String year,int pagenum){
 		String url=url_head+year+"?start="+(pagenum-1)*20+url_end;
 		ArrayList<class_shortmovieinfo> l=new ArrayList<class_shortmovieinfo> ();
-		String source=jsoup.getSource(url,10000,cp.ip,cp.port);
+		String source=jsoup.getSource(url);
 		if(source!=null&&source.length()>0){
 			//先找到所有电影的位置
 			Document doc=Jsoup.parse(source);
@@ -202,7 +202,7 @@ public class shortMovie {
 		int pagenum=1;
 		while(true){
 			String url=url_head+year+"?start="+(pagenum-1)*20+url_end;
-			String source=jsoup.getSource(url,10000,cp.ip,cp.port);
+			String source=jsoup.getSource(url);
 			if(source!=null&&source.length()>0){
 				//如果非法的页面就退出了
 				if(source.contains("没有找到符合条件的电影")){
@@ -287,7 +287,7 @@ public class shortMovie {
 			//System.out.println("第"+pagenum+"页");
 			String url=url_head+year+"?start="+(pagenum-1)*20+url_end;
 			//System.out.println(url);
-			String source=jsoup.getSource(url,10000,cp.ip,cp.port);
+			String source=jsoup.getSource(url);
 			if(source!=null&&source.length()>0){
 				//如果非法的页面就退出了
 				if(source.contains("没有找到符合条件的电影")){
@@ -450,7 +450,7 @@ public class shortMovie {
 		String url="https://movie.douban.com/subject/"+num+"/reviews";
 		int flag=0;
 		while(flag<3){
-			String source=jsoup.getSource(url,10000,cp.ip,cp.port);
+			String source=jsoup.getSource(url);
 			if(source!=null&&source.length()>0){
 				String pat="data-total-page=\"(\\d+?)\"";
 				ArrayList<String> l=ZhengZe.ZhengZe.getRe(source,pat);
@@ -491,7 +491,7 @@ public class shortMovie {
 	//根据电影num和页数以及代理服务器获取影评网址
 	//分别表示电影页数url、电影位置、电影的num、电影页数、电影总页数
 	public static int getUrlByMovieNumAndPageNumProxy(String url,int index,int movienum,int i,int pagenum){
-		String source=jsoup.getSource(url,10000,cp.ip,cp.port);
+		String source=jsoup.getSource(url);
 		int sum=0;
 		//System.out.println("正在获取:"+url);
 		System.out.println("正在获取数据--第"+index+"/"+nums.size()+"个电影："+movienum+"\t第"+i+"/"+pagenum+"页");
@@ -562,12 +562,10 @@ public class shortMovie {
 	
 	//得到可用代理服务器
 	public static void getValiable(useful_proxy douban_up){
-		//取得第一个可用代理服务器就行
+		/*//取得第一个可用代理服务器就行
 		while(true){
 			//判断有没有爬完一遍可用代理服务器
 			if(douban_up.fixedThreadPool.isTerminated()){
-				//需要修改proxyNum
-				proxyNum=0;
 				//后台获取可用代理服务器
 				douban_up=new useful_proxy(douban_url,doubanproxy_threadnum);
 				douban_up.start();
@@ -593,7 +591,12 @@ public class shortMovie {
 					e.printStackTrace();
 				}
 			}
-		}
+		}*/
+		System.out.println("重连");
+		ReConnect.Reconnect();
+		
+		
+		
 	}
 
 	
@@ -1014,7 +1017,7 @@ public class shortMovie {
 
 		//初始化一些参数
 		String year="2016";
-		int sort=4;
+		int sort=1;
 		
 		//修改表的名称
 		DoubanNames.articleTableName="douban"+"_"+year+"_"+sort;
@@ -1033,9 +1036,9 @@ public class shortMovie {
 		
 		//代理服务器开始获取
 		//初始取第0个标志位
-		proxyNum=0;
+		//proxyNum=0;
 		//可用代理服务器
-		cp=new class_proxy();
+	//	cp=new class_proxy();
 		
 		//测试网址
 		douban_url="https://movie.douban.com";
@@ -1043,7 +1046,7 @@ public class shortMovie {
 		doubanproxy_threadnum=2000;
 		//后台获取可用代理服务器
 		useful_proxy douban_up=new useful_proxy(douban_url,doubanproxy_threadnum);
-		douban_up.start();
+		/*douban_up.start();
 		while(douban_up.fixedThreadPool==null){
 			try {
 				Thread.sleep(1000);
@@ -1051,11 +1054,11 @@ public class shortMovie {
 				e.printStackTrace();
 			}
 		}
-		getValiable(douban_up);
+		getValiable(douban_up);*/
 		
 		
 		//开始爬电影数据
-		//getByYearAndSort(douban_up,year,sort);
+		getByYearAndSort(douban_up,year,sort);
 		
 		//从数据表中获取电影num数据（爬完电影数据后爬影评num）
 		if(!getNumsFromSql()){
@@ -1082,7 +1085,7 @@ public class shortMovie {
 		
 		
 		//运行完之后还需要关闭运行的多线程
-		douban_up.stop();
+	//	douban_up.stop();
 	}
 
 }

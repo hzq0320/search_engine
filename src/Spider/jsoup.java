@@ -239,8 +239,9 @@ public class jsoup {
 	public static void main(String[] args) throws IOException {
 		// TODO 自动生成的方法存根
 
-		String url="http://zwhzbxpg.hdu.edu.cn/Art/Art_9/Art_9_20.aspx";
+		String url="https://rate.tmall.com/list_detail_rate.htm?itemId=545663194713&sellerId=2043230365&currentPage=1";
 		String source=getSource(url);
+		System.out.println(source);
 		String text=getTextBySource(source);
 		System.out.println(getTimeByTextLong(text));
 		

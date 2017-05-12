@@ -20,6 +20,12 @@ public class ConnectToOtherIp {
 	//sql
 	public static String sql;
 
+	//url表
+	public static String urlTableName="urls_computer";
+	//word表
+	public static String wordTableName="words_computer";
+	
+	
 	//初始化连接
 	public static boolean init(){
 		//驱动程序名
@@ -54,14 +60,14 @@ public class ConnectToOtherIp {
 			System.out.println(re.get(i));
 		}
 		
-		sql="desc urls";
+		sql="desc "+urlTableName;
         re=MySql.MySql.selectWithTitle(con,sql);
 		System.out.println("url表信息:");
 		for(int i=0;i<re.size();i++){
 			System.out.println(re.get(i));
 		}
 		
-		sql="desc words";
+		sql="desc "+wordTableName;
         re=MySql.MySql.selectWithTitle(con,sql);
 		System.out.println("words表信息:");
 		for(int i=0;i<re.size();i++){
@@ -74,28 +80,32 @@ public class ConnectToOtherIp {
 	//查询（从word表从查网址）
 	public static ArrayList<String> selectUrlFromWord(String zhWord){
 		long start=Time.gettime13();
-		String bufsql="select urls from words where word='"+Zhong.Zh.ZhToUrlEncodeUTF_8(zhWord)+"'";
+		String bufsql="select urls from "+wordTableName+" where word='"+Zhong.Zh.ZhToUrlEncodeUTF_8(zhWord)+"'";
 		ArrayList<String> re=MySql.MySql.select(con,bufsql);
 		return re;
 	}
 	
 	//查询
 	public static void se(){
-		sql="SELECT count(url) FROM search.urls;";
+		sql="SELECT count(url) FROM "+urlTableName;
 		ArrayList<String> re=MySql.MySql.select(con,sql);
 		System.out.println("共有网址数："+re);
 		
-		sql="SELECT count(url) FROM search.urls where text is not null;";
+		sql="SELECT count(url) FROM "+urlTableName+" where text is not null;";
 		re=MySql.MySql.select(con,sql);
 		System.out.println("有效网址数："+re);
 		
-		sql="select count(distinct url) from urls";
+		sql="select count(distinct url) from "+urlTableName;
 		re=MySql.MySql.select(con,sql);
 		System.out.println("不重复网址数："+re);
 		
-		sql="SELECT count(word) FROM search.words;";
+		sql="SELECT count(word) FROM "+wordTableName;
 		re=MySql.MySql.select(con,sql);
 		System.out.println("共有词数："+re);
+		
+		sql="SELECT count(distinct word) FROM "+wordTableName;
+		re=MySql.MySql.select(con,sql);
+		System.out.println("不重复词数："+re);
 		
 	}
 	
@@ -113,18 +123,19 @@ public class ConnectToOtherIp {
 		
 		Scanner in=new Scanner(System.in);
 		
+		/*//一直查询表信息
 		while(true){
 			System.out.println(Time.getDetailTime());
 			se();
 			try {
-				Thread.sleep(10*1000);
+				Thread.sleep(60*1000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-		}
+		}*/
+
 		
-		
-		/*while(true){
+		while(true){
 			String s=in.next();
 			//根据命令查询
 			if(s.equals("1")){
@@ -152,7 +163,7 @@ public class ConnectToOtherIp {
 			}
 			long end=Time.gettime13();
 			System.out.println("用时:"+(end-start)+"秒");
-		}*/
+		}
 		
 	}
 
